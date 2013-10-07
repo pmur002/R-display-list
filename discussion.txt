@@ -1,0 +1,140 @@
+
+Notes from initial email discussion ...
+
++ What do people want/need from the display list?
+
+  - Paul's summary (for discussion)
+
+    It sounds like the "prime directive" is for something that can be
+    pretty dumb;  all it has to do is faithfully record what was 
+    drawn so that a previous drawing can be faithfully redrawn.
+    No need for "smarts" about any high-level structure of what was
+    drawn.  OTOH, there is need for reconstruction of correct
+    "graphics state".
+
+    A major issue is how to record everything that is required 
+    (e.g., would prefer NOT to have multiple copies of large sets
+    of data values;  how to record what code is needed for redraw?
+    and how to ensure that all required code is available for redraw?)
+
+    Another issue is detecting when a new plot/page has begun
+    (the recent addition of par("page") provides some relief?).
+
+    At least some demand for being able to redraw on different device
+    than originally drawn on (plus redrawing in different R session,
+    i.e., persistent storage).
+
+    Also at least one demand for ability to work with display list object
+    beyond redraw (e.g., 'diff' two objects).
+
+    The current display list is similar to Gabriel's "par state, and 
+    call+data info", it's just that the call+data info is not 
+    designed for persistent storage or querying, so it's the call+data
+    bit that needs designing (?)
+
+  - Gergely Daroczi (apologies for ASCIIfication)
+
+    Our use case for "recordPlot" is simply storing the "recordedplot"
+    object on disk along with the png image format so that a modified
+    resolution version of the plot could be redrawn very quickly
+    (resizing png plots on the fly). Although I am aware of the fact
+    that strange things could happen between different sessions, we
+    never had any problems in the past, and the images can be
+    re-rendered from scratch (with evaluating the original R
+    expression) on demand (if something goes wrong), but that's a lot
+    slower process. So "recordPlot" is a really nice feature of R that
+    we would love to use in the further releases.
+
+  - Gabriel Becker
+ 
+    I need to be able to take a snapshot of any active (or even
+    non-closed) R graphics device at an arbitrary (non-interrupting)
+    time and receive an R object which can:
+
+    + Be redrawn in R to an arbitrary graphics device with results
+      identical to what would happen if the new graphics device had
+      been the one originally used and no snapshotting, etc had taken
+      place, including the abilities to
+
+      - add to the image via normal appropriate R code (lines, points,
+        etc and grid/lattice/ggplot2 equivalents)
+      - snapshot the image from the new graphics device
+      - change any graphical parameters that don't require a full redraw
+
+    + Safely saved to and loaded from disk and used in an arbitrary R
+      session on arbitrary hardware so long as the required packages
+      are present (and detect when this is not the case)
+
+    + The ability to inspect two (or more) of these objects and detect
+      whether the image/plot has changed (Hadley's evaluate package
+      has something that tries to do this, and I have code in this
+      vein as well, but I would argue that if we are designing a new
+      system this should be "part of the spec")
+
+    Furthermore, and I suspect somewhat unfortunately for our intrepid
+    band (or just me if we punt :p ), my use-case requires all this to
+    happen when the plotting code is arbitrary, not written by me, and
+    evaluated via an arbitrary mechanism (source, eval(parse(...)),
+    withVis, evaluate, etc), which means it has to "just work".
+
+    The simplest thing that I can think of is a list of initial par
+    state, and call+data info for every call down to a graphics
+    device's component functions (graphical primitives, settings
+    changes, etc) that R understands how to re-execute on any open
+    device. I think Jeroen is correct that it "should" be pretty
+    straightforward to do that in a specifically designed graphics
+    device
+
+    I have an (experimental/research grade) graphics device that
+    carries around objects representing the output of all it's
+    graphical primitive calls so that they can be queried and altered
+    without redraws. Its not directly useful here because the objects
+    are not at all general (they are external pointers to javascript
+    objects living in a Web page with R embedded), but if we could
+    come up with a standardized object that could do what we need I've
+    worked through most of the reasoning. A potential problem here is
+    doing this in a way that is loadable from disk without massive
+    data duplication, but that is largely engineering and should be
+    surmountable.
+
+  + Jeroen Oons
+
+    The requirements for OpenCPU would be similar to what has already
+    been mentioned: to record graphics from an arbitrary script/call
+    such that they can be:
+
+    - rendered to png/pdf/svg of any size
+    - serialized to disk
+    - capture multiple 'pages' of the graphics device when the call
+      produces more than 1 plot
+
+    I think underlying bigger picture is to be able to decouple the
+    building of a graph, from rendering it to a certain image
+    format. In most graphical (or other) software, the user first
+    edits a figure/document/etc in some native form which can at any
+    point be saved for later use, or exported to various image
+    formats. However in R, the output format/parameters are fixed by
+    the device before starting the plot.
+
+    My ideal would be to have the "open device" serve only as a
+    buffer, which can at any point be stored or written to
+    png/pdf/x11/etc. A couple of years ago I tried to implement such a
+    device that would not render anything but simply store all drawing
+    instructions in a list for later use. However after studying some
+    3rd party device packages on cran, and some of Duncan's stuff
+    (e.g. RGraphicsDevice) I couldn't get it to work and eventually
+    gave up and decided to just use recordPlot together with the
+    plot/grid hooks.
+
+  + JJ Allaire
+
+    RStudio's use case is a bit more narrow that what Jeroen and
+    Gabriel described (although we'd very much welcome the additional
+    flexibility they outlined).
+
+    We currently do some persistence of plots across R sessions (for
+    example, when R sessions are suspend for inactivity or when R is
+    restarted as part of package build and reloads). Currently we use
+    the hack mentioned earlier (fixing up native symbols). Having this
+    "just work" and not having to maintain the potentially fragile
+    hack would be terrific.
