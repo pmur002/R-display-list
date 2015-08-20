@@ -16,7 +16,7 @@ makeModel <- function(model, filestem, suffix) {
     expr <- paste0('png("', png, '"); dev.control("enable"); ',
                    code)
     cmd <- paste0(Rcmd,  " -e '", expr, "'")
-    system(cmd)
+    system(cmd, ignore.stdout=TRUE, ignore.stderr=TRUE)
 }
 
 compareResult <- function(filestem, suffix) {
@@ -34,10 +34,15 @@ compareResult <- function(filestem, suffix) {
         cmpfile <- paste0(filestem, "-diff.png")
         cmpCmd <- paste("compare -metric ae", replayFiles[i], modelFiles[i],
                         cmpfile)
-        cmpResult <- system(cmpCmd)
-        if (cmpResult != 0) {
+        cmpResult <- system2("compare",
+                             c("-metric ae",
+                               replayFiles[i], modelFiles[i], cmpfile),
+                             stdout=TRUE, stderr=TRUE)
+        if (cmpResult != "0") {
             stop(paste0("Files ", replayFiles[i], " and ", modelFiles[i],
                         " do not match"))
+        } else {
+            cat(paste0(replayFiles[i], " = ", modelFiles[i], "\n"))
         }
     }
 }
@@ -53,7 +58,7 @@ testCopy <- function(plot, append=doNothing, model, filestem) {
                    '; dev.copy(png, file="', png2, '"); ',
                    code2)
     cmd <- paste0(Rcmd,  " -e '", expr, "'")
-    system(cmd)
+    system(cmd, ignore.stdout=TRUE, ignore.stderr=TRUE)
     # Produce model answer for copied plot
     makeModel(model, filestem, "copy")
     # Compare copied plot with model answer
@@ -74,7 +79,7 @@ testReplay <- function(plot, prepend=doNothing, append=doNothing, model,
                     '; replayPlot(p); ',
                     code3)
     cmd <- paste0(Rcmd,  " -e '", expr, "'")
-    system(cmd)
+    system(cmd, ignore.stdout=TRUE, ignore.stderr=TRUE)
     makeModel(model, filestem, "replay")
     # Compare copied plot with model answer
     compareResult(filestem, "replay")
@@ -90,7 +95,7 @@ testReload <- function(plot, prepend=doNothing, append=doNothing, model,
                     code1,
                     '; p <- recordPlot(); saveRDS(p, "', savefile, '")')
     cmd1 <- paste0(Rcmd,  " -e '", expr1, "'")
-    system(cmd1)
+    system(cmd1, ignore.stdout=TRUE, ignore.stderr=TRUE)
     # Replay plot (possibly prepend and possibly append new drawing)
     png2 <- paste0(filestem, "-reload-replay%02d.png")
     code2a <- funText(prepend)
@@ -100,7 +105,7 @@ testReload <- function(plot, prepend=doNothing, append=doNothing, model,
                     '; p <- readRDS("', savefile, '"); replayPlot(p); ',
                     code2b)
     cmd2 <- paste0(Rcmd,  " -e '", expr2, "'")
-    system(cmd2)
+    system(cmd2, ignore.stdout=TRUE, ignore.stderr=TRUE)
     # Produce model answer for replayed plot
     makeModel(model, filestem, "reload")
     # Compare replayed plot with model answer
