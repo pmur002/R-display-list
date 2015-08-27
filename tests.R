@@ -8,7 +8,7 @@ source("test-common.R")
 # Basic test for recording and replaying 'graphics' plot
 # Fails in current R because save/load of recorded plot has been outlawed
 graphicsPlot <- function() {
-    plot(1)
+    plot(1, col="red")
 }
 
 testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot")
@@ -19,7 +19,7 @@ graphicsAppend <- function() {
 }
 
 graphicsAppendModel <- function() {
-    plot(1)
+    plot(1, col="red")
     segments(.8, .8, 1.2, 1.2)
 }
 
@@ -100,12 +100,12 @@ testReload(gridPlot, prepend=gridPrepend, append=gridAppend,
 
 # Test 'graphics' replay with 'graphics' already on device
 graphicsPrepend <- function() {
-    plot(1)
+    plot(1, col="green")
 }
 
 graphicsPrependAppendModel <- function() {
-    plot(1)
-    plot(1)
+    plot(1, col="green")
+    plot(1, col="red")
     segments(.8, .8, 1.2, 1.2)    
 }
 
@@ -120,7 +120,7 @@ graphicsGrid1 <- function() {
 }
 
 graphicsGridModel1 <- function() {
-    plot(1)
+    plot(1, col="green")
     require(grid, quietly=TRUE)
     # Replay of display list will force a new page
     grid.newpage()
@@ -142,7 +142,7 @@ graphicsGrid2 <- function() {
 }
 
 graphicsGridModel2 <- function() {
-    plot(1)
+    plot(1, col="green")
     require(grid, quietly=TRUE)
     plot.new()
     pushViewport(viewport(width=.5, height=.5, name="vp"))
@@ -163,14 +163,14 @@ testReload(graphicsGrid2, prepend=graphicsPrepend, append=gridAppend,
 gridDLgraphics <- function() {
     require(grid, quietly=TRUE)
     grid.segments()
-    plot(1)
+    plot(1, col="red")
 }
 
 gridDLgraphicsModel <- function() {
     require(grid, quietly=TRUE)
     grid.segments()
-    plot(1)
-    plot(1)
+    plot(1, col="red")
+    plot(1, col="red")
 }
 
 testReplay(gridDLgraphics, model=gridDLgraphicsModel,
@@ -182,14 +182,14 @@ testReplay(gridDLgraphics, model=gridDLgraphicsModel,
 gridDLgraphicsEdit <- function() {
     require(grid, quietly=TRUE)
     grid.segments(name="s")
-    plot(1)
+    plot(1, col="red")
     grid.edit("s", gp=gpar(col="red"))
 }
 
 gridDLgraphicsEditModel <- function() {
     require(grid, quietly=TRUE)
     grid.segments(name="s")
-    plot(1)
+    plot(1, col="red")
     grid.edit("s", gp=gpar(col="red"))
     # Replay of display list will force a new page
     grid.newpage()
@@ -238,3 +238,20 @@ testReplay(gridPlot, prepend=gridEdit, model=gridEditModel,
 
 
 # Tests with 'grid' DL OFF !?
+
+
+# Test across R versions
+testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot-R-version",
+           testVersion=TRUE)
+
+# Test across R versions, grid on DL
+testReload(latticePlot, model=latticePlot, filestem="lattice-plot-R-version",
+           testVersion=TRUE)
+
+# Test with no graphics system packages loaded
+testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot-no-graphics",
+           defaultPackages=NULL)
+
+# Test with 'grid' loaded before 'graphics'
+testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot-no-graphics",
+           defaultPackages=c("grid", "graphics"))
