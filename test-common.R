@@ -50,8 +50,9 @@ compareResult <- function(filestem, suffix) {
     }
 }
 
-testCopy <- function(plot, append=doNothing, model, filestem) {
-    # Create plot and copy to new device (possibly appending)
+testCopy <- function(plot, append=doNothing, model,
+                     filestem) {
+    # Create plot and copy to new device (possibly prepending and appending)
     png1 <- paste0(filestem, "-copy-record.png")
     png2 <- paste0(filestem, "-copy-replay%02d.png")
     code1 <- funText(plot)
@@ -71,10 +72,10 @@ testCopy <- function(plot, append=doNothing, model, filestem) {
     compareResult(filestem, "copy")
 }
 
-testReplay <- function(plot, prepend=doNothing, append=doNothing, model,
+testDevice <- function(plot, prepend=doNothing, append=doNothing, model,
                        filestem) {
     # Create plot and replay on SAME device (possibly prepending and appending)
-    png <- paste0(filestem, "-replay-replay%02d.png")
+    png <- paste0(filestem, "-device-replay%02d.png")
     code1 <- funText(plot)
     code2 <- funText(prepend)
     code3 <- funText(append)
@@ -89,9 +90,35 @@ testReplay <- function(plot, prepend=doNothing, append=doNothing, model,
     if (result) {
         stop("Failed to replay recorded plot")
     }
-    makeModel(model, filestem, "replay")
+    makeModel(model, filestem, "device")
     # Compare copied plot with model answer
-    compareResult(filestem, "replay")
+    compareResult(filestem, "device")
+}
+
+testSession <- function(plot, prepend=doNothing, append=doNothing, model,
+                       filestem) {
+    # Create plot and replay IN SAME R SESSION
+    # (possibly prepending and appending)
+    png1 <- paste0(filestem, "-session-record%02d.png")
+    png2 <- paste0(filestem, "-session-replay%02d.png")
+    code1 <- funText(plot)
+    code2 <- funText(prepend)
+    code3 <- funText(append)
+    expr <- paste0('png("', png1, '"); dev.control("enable"); ',
+                   code1,
+                   '; p <- recordPlot(); dev.off(); ',
+                   'png("', png2, '"); ',
+                    code2,
+                    '; replayPlot(p); ',
+                    code3)
+    cmd <- paste0(Rcmd,  " -e '", expr, "'")
+    result <- system(cmd, ignore.stdout=TRUE, ignore.stderr=FALSE)
+    if (result) {
+        stop("Failed to either record plot or replay recorded plot")
+    }
+    makeModel(model, filestem, "session")
+    # Compare copied plot with model answer
+    compareResult(filestem, "session")
 }
 
 testReload <- function(plot, prepend=doNothing, append=doNothing, model,
@@ -148,3 +175,35 @@ testReload <- function(plot, prepend=doNothing, append=doNothing, model,
     compareResult(filestem, "reload")
 }
 
+# Compendium of tests
+# Set testCopy=FALSE to avoid test of dev.copy()
+# Set testVersion=FALSE to avoid test of recordedplot from different R version
+testAll <- function(plot, prepend=doNothing, append=doNothing, model, filestem,
+                    testCopy=TRUE, testVersion=TRUE) {
+    # Test replay of DL within same R session
+    testSession(plot, prepend, append, model, filestem)
+    if (testCopy) {
+        # Test copy of DL to another device
+        testCopy(plot, append, model, filestem)
+    }
+    # Test replay of DL in different R session
+    # (same R version)
+    testReload(plot, prepend, append, model, filestem)
+    # Test replay of DL in different R session
+    # (same R version, no graphics packages)
+    testReload(plot, prepend, append, model,
+               paste0(filestem, "-no-graphics"),
+               defaultPackages=NULL)
+    # Test replay of DL in different R session
+    # (same R version, graphics packages reversed)
+    testReload(plot, prepend, append, model,
+               paste0(filestem, "-grid-first"),
+               defaultPackages=c("grid", "graphics"))
+    if (testVersion) {
+        # Test replay of DL in different R session
+        # (different R version)
+        testReload(plot, prepend, append, model,
+                   paste0(filestem, "-R-version"),
+                   testVersion=TRUE)
+    }
+}

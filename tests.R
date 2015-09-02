@@ -1,5 +1,6 @@
 
-# Run somewhere that this will not do damage !!!
+# Run somewhere that this will NOT do DAMAGE !!!
+# For me that is ~/Files/Research/Rstuff/DisplayList/Testing/
 system("rm *.png")
 system("rm *.rds")
 
@@ -11,7 +12,7 @@ graphicsPlot <- function() {
     plot(1, col="red")
 }
 
-testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot")
+testAll(graphicsPlot, model=graphicsPlot, filestem="graphics-plot")
 
 # Test for being able to ADD to a replayed 'graphics' plot
 graphicsAppend <- function() {
@@ -23,8 +24,8 @@ graphicsAppendModel <- function() {
     segments(.8, .8, 1.2, 1.2)
 }
 
-testReload(graphicsPlot, append=graphicsAppend, model=graphicsAppendModel,
-           filestem="graphics-plot-append")
+testAll(graphicsPlot, append=graphicsAppend, model=graphicsAppendModel,
+        filestem="graphics-plot-append")
 
 # Test for recording and replaying 'grid'-based plot
 # Really just testing the graphics engine again
@@ -33,7 +34,7 @@ latticePlot <- function() {
     xyplot(1 ~ 1)
 }
 
-testReload(latticePlot, model=latticePlot, filestem="lattice-plot")
+testAll(latticePlot, model=latticePlot, filestem="lattice-plot")
 
 # Test for being able to ADD to a replayed 'grid' plot
 # Tests BOTH viewports and grobs
@@ -57,7 +58,11 @@ gridAppendModel <- function() {
     grid.edit("r", gp=gpar(col="red"))
 }
 
-testReload(gridPlot, append=gridAppend, model=gridAppendModel, filestem="grid")
+# CANNOT test recorded plot from old R version because recordedplot
+# will not contain grid DL, so append will not work
+# (no "r" grob to find)
+testAll(gridPlot, append=gridAppend, model=gridAppendModel, filestem="grid",
+        testVersion=FALSE)
 
 # Test for being able to ADD to a replayed 'lattice' plot
 latticeAppend <- function() {
@@ -74,8 +79,10 @@ latticeAppendModel <- function() {
     grid.segments()
 }
 
-testReload(latticePlot, append=latticeAppend, model=latticeAppendModel,
-           filestem="lattice-append")
+# This works even for older R version because the 'grid' viewports are
+# recreated by the graphics engine DL replay
+testAll(latticePlot, append=latticeAppend, model=latticeAppendModel,
+        filestem="lattice-append")
 
 # Test for being able to ADD to a replayed 'grid' plot,
 # but with 'grid' drawing already on device
@@ -95,12 +102,18 @@ gridPrependModel <- function() {
     grid.edit("r", gp=gpar(col="red"))    
 }
 
-testReload(gridPlot, prepend=gridPrepend, append=gridAppend,
-           model=gridPrependModel, filestem="grid-prepend")
+# Do not test dev.copy() for this one because 'prepend' does not make sense
+# CANNOT test recorded plot from old R version because recordedplot
+# will not contain grid DL, so append will not work
+# (no "r" grob to find)
+testAll(gridPlot, prepend=gridPrepend, append=gridAppend,
+        model=gridPrependModel, filestem="grid-prepend",
+        testCopy=FALSE, testVersion=FALSE)
 
 # Test 'graphics' replay with 'graphics' already on device
 graphicsPrepend <- function() {
-    plot(1, col="green")
+    # Specify package so this can be tested without 'graphics' loaded
+    graphics::plot(1, col="green")
 }
 
 graphicsPrependAppendModel <- function() {
@@ -109,8 +122,10 @@ graphicsPrependAppendModel <- function() {
     segments(.8, .8, 1.2, 1.2)    
 }
 
-testReload(graphicsPlot, prepend=graphicsPrepend, append=graphicsAppend,
-           model=graphicsPrependAppendModel, filestem="graphics-prepend")
+# Do not test dev.copy() for this one because 'prepend' does not make sense
+testAll(graphicsPlot, prepend=graphicsPrepend, append=graphicsAppend,
+        model=graphicsPrependAppendModel, filestem="graphics-prepend",
+        testCopy=FALSE)
      
 # Test 'grid', but with 'graphics' drawing already on device
 graphicsGrid1 <- function() {
@@ -130,8 +145,13 @@ graphicsGridModel1 <- function() {
     grid.edit("r", gp=gpar(col="red"))    
 }
 
-testReload(graphicsGrid1, prepend=graphicsPrepend, append=gridAppend,
-           model=graphicsGridModel1, filestem="graphics-grid-prepend-1")
+# Do not test dev.copy() for this one because 'prepend' does not make sense
+# CANNOT test recorded plot from old R version because recordedplot
+# will not contain grid DL, so append will not work
+# (no "r" grob to find)
+testAll(graphicsGrid1, prepend=graphicsPrepend, append=gridAppend,
+        model=graphicsGridModel1, filestem="graphics-grid-prepend-1",
+        testCopy=FALSE, testVersion=FALSE)
 
 # Test mix of 'graphics' and 'grid', with 'graphics' drawing already on device 
 graphicsGrid2 <- function() {
@@ -151,8 +171,13 @@ graphicsGridModel2 <- function() {
     grid.edit("r", gp=gpar(col="red"))    
 }
 
-testReload(graphicsGrid2, prepend=graphicsPrepend, append=gridAppend,
-           model=graphicsGridModel2, filestem="graphics-grid-prepend-2")
+# Do not test dev.copy() for this one because 'prepend' does not make sense
+# CANNOT test recorded plot from old R version because recordedplot
+# will not contain grid DL, so append will not work
+# (no "r" grob to find)
+testAll(graphicsGrid2, prepend=graphicsPrepend, append=gridAppend,
+        model=graphicsGridModel2, filestem="graphics-grid-prepend-2",
+        testCopy=FALSE, testVersion=FALSE)
 
 # Demonstration of the fact that the 'grid' DL is NOT erased when
 # 'graphics' starts a new page, SO the 'grid' DL is included in
@@ -173,7 +198,7 @@ gridDLgraphicsModel <- function() {
     plot(1, col="red")
 }
 
-testReplay(gridDLgraphics, model=gridDLgraphicsModel,
+testDevice(gridDLgraphics, model=gridDLgraphicsModel,
            filestem="grid-DL-graphics")
 
 # This demonstration gets weirder;  we modify a grob on the 'grid' DL
@@ -196,19 +221,28 @@ gridDLgraphicsEditModel <- function() {
     grid.segments(gp=gpar(col="red"))
 }
 
-testReplay(gridDLgraphicsEdit, model=gridDLgraphicsEditModel,
+testDevice(gridDLgraphicsEdit, model=gridDLgraphicsEditModel,
            filestem="grid-DL-graphics-edit")
 
 # Tests for recording/replaying arbitrary R code on DL (recordGraphics)
 # (pretty much any 'grid' code will do this anyway?)
+recordGraphics <- function() {
+    recordGraphics(plot(datasets::mtcars), list(), getNamespace("graphics"))
+}
 
+testAll(recordGraphics, model=recordGraphics, filestem="record-graphics")
 
 # Tests for recording/replaying when there is NO 'grid' output
+# CANNOT test recorded plot from old R version because recordedplot
+# will not contain grid DL, so replay will not do ANY 'grid' setup
+# (not even start a page)
+gridNULL <- function() {
+    require(grid, quietly=TRUE)    
+    grid.newpage()
+}
 
-
-# Tests for COPYING from one device to another
-testCopy(gridPlot, append=gridAppend, model=gridAppendModel,
-         filestem="grid-copy")
+testAll(gridNULL, model=gridNULL, filestem="grid-null",
+        testVersion=FALSE)
 
 # Tests for copying BY REFERENCE
 # (take copy of grid DL, modify grid DL, replay grid DL ...
@@ -229,29 +263,8 @@ gridEditModel <- function() {
     grid.rect(name="r")    
 }
 
-testReplay(gridPlot, prepend=gridEdit, model=gridEditModel,
+testDevice(gridPlot, prepend=gridEdit, model=gridEditModel,
            filestem="grid-edit")
 
 
-# Tests with graphics engine DL OFF !
-# (so redrawing is entirely up to 'grid')
 
-
-# Tests with 'grid' DL OFF !?
-
-
-# Test across R versions
-testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot-R-version",
-           testVersion=TRUE)
-
-# Test across R versions, grid on DL
-testReload(latticePlot, model=latticePlot, filestem="lattice-plot-R-version",
-           testVersion=TRUE)
-
-# Test with no graphics system packages loaded
-testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot-no-graphics",
-           defaultPackages=NULL)
-
-# Test with 'grid' loaded before 'graphics'
-testReload(graphicsPlot, model=graphicsPlot, filestem="graphics-plot-no-graphics",
-           defaultPackages=c("grid", "graphics"))
