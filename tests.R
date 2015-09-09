@@ -14,6 +14,22 @@ graphicsPlot <- function() {
 
 testAll(graphicsPlot, model=graphicsPlot, filestem="graphics-plot")
 
+# Test with non-transparent background
+graphicsPlotBG <- function() {
+    par(bg="pink")
+    plot(1)
+}
+
+testAll(graphicsPlotBG, model=graphicsPlotBG, filestem="graphics-plot-bg")
+
+# Test with 'grid' loaded, but no 'grid' drawing
+graphicsGridLoaded <- function() {
+    require(grid)
+    plot(1, col="red")
+}
+
+testAll(graphicsGridLoaded, model=graphicsPlot, filestem="graphics-grid-loaded")
+
 # Test for being able to ADD to a replayed 'graphics' plot
 graphicsAppend <- function() {
     segments(.8, .8, 1.2, 1.2)

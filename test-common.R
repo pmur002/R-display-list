@@ -1,5 +1,5 @@
 
-Rcmd <- "~/R/R-DL/BUILD/bin/Rscript"
+Rcmd <- "~/R/r-devel/BUILD/bin/Rscript"
 
 funText <- function(f) {
     bodyText <- deparse(body(f))
