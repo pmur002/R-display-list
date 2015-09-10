@@ -2,6 +2,9 @@
 # Run somewhere that this will NOT do DAMAGE !!!
 # For me that is ~/Files/Research/Rstuff/DisplayList/Testing/
 system("rm *.png")
+system("rm *.postscript")
+system("rm *.pdf")
+system("rm *.svg")
 system("rm *.rds")
 
 source("test-common.R")
@@ -52,6 +55,22 @@ latticePlot <- function() {
 
 testAll(latticePlot, model=latticePlot, filestem="lattice-plot")
 
+# Test for 'ggplot2'
+# This will not work across R sessions UNLESS we reload
+# 'ggplot2' in new R session, so use prepend to do that
+# (BUT prepend will not work on different R version test)
+ggplot2Plot <- function() {
+    require(ggplot2, quiet=TRUE)
+    ggplot(mtcars) + geom_point(aes(x=disp, y=mpg))
+}
+
+ggplot2Prepend <- function() {
+    require(ggplot2, quiet=TRUE)
+}
+
+testAll(ggplot2Plot, prepend=ggplot2Prepend, model=ggplot2Plot,
+        filestem="ggplot2", testVersion=FALSE)
+
 # Test for being able to ADD to a replayed 'grid' plot
 # Tests BOTH viewports and grobs
 gridPlot <- function() {
@@ -77,8 +96,10 @@ gridAppendModel <- function() {
 # CANNOT test recorded plot from old R version because recordedplot
 # will not contain grid DL, so append will not work
 # (no "r" grob to find)
+# The result is multi-page, which makes testing of copy to
+# PostScript, PDF, and SVG tricky
 testAll(gridPlot, append=gridAppend, model=gridAppendModel, filestem="grid",
-        testVersion=FALSE)
+        testVersion=FALSE, dev="png")
 
 # Test for being able to ADD to a replayed 'lattice' plot
 latticeAppend <- function() {

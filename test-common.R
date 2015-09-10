@@ -10,10 +10,10 @@ doNothing <- function() {
     NULL
 }
 
-makeModel <- function(model, filestem, suffix) {
-    png <- paste0(filestem, "-", suffix, "-model%02d.png")
+makeModel <- function(model, filestem, suffix, dev="png") {
+    png <- paste0(filestem, "-", suffix, "-model%02d.", dev)
     code <- funText(model)
-    expr <- paste0('png("', png, '"); dev.control("enable"); ',
+    expr <- paste0(dev, '("', png, '"); dev.control("enable"); ',
                    code)
     cmd <- paste0(Rcmd,  " -e '", expr, "'")
     result <- system(cmd, ignore.stdout=TRUE, ignore.stderr=FALSE)
@@ -22,12 +22,12 @@ makeModel <- function(model, filestem, suffix) {
     }
 }
 
-compareResult <- function(filestem, suffix) {
+compareResult <- function(filestem, suffix, dev="png") {
     # (may involve comparing multiple files)
     replayFiles <- list.files(pattern=paste0(filestem, "-", suffix,
-                                  "-replay.*.png"))
+                                  "-replay.*.", dev))
     modelFiles <- list.files(pattern=paste0(filestem, "-", suffix,
-                                 "-model.*.png"))
+                                 "-model.*.", dev))
     if (length(replayFiles) != length(modelFiles)) {
         stop(paste0("Number of replay files (", length(replayFiles),
                     ") does not match number of model files (",
@@ -35,8 +35,6 @@ compareResult <- function(filestem, suffix) {
     }
     for (i in seq_along(modelFiles)) {
         cmpfile <- paste0(filestem, "-diff.png")
-        cmpCmd <- paste("compare -metric ae", replayFiles[i], modelFiles[i],
-                        cmpfile)
         cmpResult <- system2("compare",
                              c("-metric ae",
                                replayFiles[i], modelFiles[i], cmpfile),
@@ -50,16 +48,16 @@ compareResult <- function(filestem, suffix) {
     }
 }
 
-testCopy <- function(plot, append=doNothing, model,
-                     filestem) {
+testCopy <- function(plot, append=doNothing, model, filestem,
+                     dev="png") {
     # Create plot and copy to new device (possibly prepending and appending)
-    png1 <- paste0(filestem, "-copy-record.png")
-    png2 <- paste0(filestem, "-copy-replay%02d.png")
+    png1 <- paste0(filestem, "-copy-", dev, "-record.", dev)
+    png2 <- paste0(filestem, "-copy-", dev, "-replay%02d.", dev)
     code1 <- funText(plot)
     code2 <- funText(append)
-    expr <- paste0('png("', png1, '"); dev.control("enable"); ',
+    expr <- paste0(dev, '("', png1, '"); dev.control("enable"); ',
                    code1,
-                   '; dev.copy(png, file="', png2, '"); ',
+                   '; dev.copy(', dev, ', file="', png2, '"); ',
                    code2)
     cmd <- paste0(Rcmd,  " -e '", expr, "'")
     result <- system(cmd, ignore.stdout=TRUE, ignore.stderr=FALSE)
@@ -67,9 +65,9 @@ testCopy <- function(plot, append=doNothing, model,
         stop("Failed to copy recorded plot")
     }
     # Produce model answer for copied plot
-    makeModel(model, filestem, "copy")
+    makeModel(model, filestem, paste0("copy-", dev), dev=dev)
     # Compare copied plot with model answer
-    compareResult(filestem, "copy")
+    compareResult(filestem, paste0("copy-", dev), dev=dev)
 }
 
 testDevice <- function(plot, prepend=doNothing, append=doNothing, model,
@@ -176,34 +174,44 @@ testReload <- function(plot, prepend=doNothing, append=doNothing, model,
 }
 
 # Compendium of tests
+# Set testReload=FALSE to avoid test of recordedplot from different R session
 # Set testCopy=FALSE to avoid test of dev.copy()
 # Set testVersion=FALSE to avoid test of recordedplot from different R version
 testAll <- function(plot, prepend=doNothing, append=doNothing, model, filestem,
-                    testCopy=TRUE, testVersion=TRUE) {
+                    testReload=TRUE, testCopy=TRUE, testVersion=TRUE,
+                    dev=c("png", "postscript", "pdf", "svg")) {
     # Test replay of DL within same R session
     testSession(plot, prepend, append, model, filestem)
     if (testCopy) {
-        # Test copy of DL to another device
-        testCopy(plot, append, model, filestem)
+        # Test copy of DL to another device (for several different formats)
+        # png() will exercise X11 device driver (on Linux)
+        # postscript() will exercise PostScript device driver
+        # pdf() will exercise PDF device driver
+        # svg() will exercise Cairo device driver (on Linux)
+        for (i in dev) {
+            testCopy(plot, append, model, filestem, dev=i)
+        }
     }
-    # Test replay of DL in different R session
-    # (same R version)
-    testReload(plot, prepend, append, model, filestem)
-    # Test replay of DL in different R session
-    # (same R version, no graphics packages)
-    testReload(plot, prepend, append, model,
-               paste0(filestem, "-no-graphics"),
-               defaultPackages=NULL)
-    # Test replay of DL in different R session
-    # (same R version, graphics packages reversed)
-    testReload(plot, prepend, append, model,
-               paste0(filestem, "-grid-first"),
-               defaultPackages=c("grid", "graphics"))
-    if (testVersion) {
+    if (testReload) {
         # Test replay of DL in different R session
-        # (different R version)
+        # (same R version)
+        testReload(plot, prepend, append, model, filestem)
+        # Test replay of DL in different R session
+        # (same R version, no graphics packages)
         testReload(plot, prepend, append, model,
-                   paste0(filestem, "-R-version"),
-                   testVersion=TRUE)
+                   paste0(filestem, "-no-graphics"),
+                   defaultPackages=NULL)
+        # Test replay of DL in different R session
+        # (same R version, graphics packages reversed)
+        testReload(plot, prepend, append, model,
+                   paste0(filestem, "-grid-first"),
+                   defaultPackages=c("grid", "graphics"))
+        if (testVersion) {
+            # Test replay of DL in different R session
+            # (different R version)
+            testReload(plot, prepend, append, model,
+                       paste0(filestem, "-R-version"),
+                       testVersion=TRUE)
+        }
     }
 }
