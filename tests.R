@@ -1,4 +1,9 @@
 
+# Usually run this with system R - it is just directing traffic
+# (if you run with, say, r-devel, may get errors because
+#  system("Rscript") from, say r-devel, will not include
+#  the right .libPath()s)
+
 # Run somewhere that this will NOT do DAMAGE !!!
 # For me that is ~/Files/Research/Rstuff/DisplayList/Testing/
 system("rm *.png")
@@ -27,7 +32,7 @@ testAll(graphicsPlotBG, model=graphicsPlotBG, filestem="graphics-plot-bg")
 
 # Test with 'grid' loaded, but no 'grid' drawing
 graphicsGridLoaded <- function() {
-    require(grid)
+    require("grid", quietly=TRUE)
     plot(1, col="red")
 }
 
@@ -49,7 +54,7 @@ testAll(graphicsPlot, append=graphicsAppend, model=graphicsAppendModel,
 # Test for recording and replaying 'grid'-based plot
 # Really just testing the graphics engine again
 latticePlot <- function() {
-    require(lattice, quietly=TRUE)
+    require("lattice", quietly=TRUE)
     xyplot(1 ~ 1)
 }
 
@@ -58,35 +63,35 @@ testAll(latticePlot, model=latticePlot, filestem="lattice-plot")
 # Test for 'ggplot2'
 # This will not work across R sessions UNLESS we reload
 # 'ggplot2' in new R session, so use prepend to do that
-# (BUT prepend will not work on different R version test)
 ggplot2Plot <- function() {
-    require(ggplot2, quiet=TRUE)
+    require("ggplot2", quietly=TRUE)
     ggplot(mtcars) + geom_point(aes(x=disp, y=mpg))
 }
 
 ggplot2Prepend <- function() {
-    require(ggplot2, quiet=TRUE)
+    require("ggplot2", quietly=TRUE)
 }
 
+# (BUT prepend will not work on different R version test)
 testAll(ggplot2Plot, prepend=ggplot2Prepend, model=ggplot2Plot,
         filestem="ggplot2", testVersion=FALSE)
 
 # Test for being able to ADD to a replayed 'grid' plot
 # Tests BOTH viewports and grobs
 gridPlot <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     pushViewport(viewport(width=.5, height=.5, name="vp"))
     grid.rect(name="r")
 }
 
 gridAppend <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.circle()
     grid.edit("r", gp=gpar(col="red"))
 }
 
 gridAppendModel <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     pushViewport(viewport(width=.5, height=.5, name="vp"))
     grid.rect(name="r")
     grid.circle()    
@@ -103,15 +108,15 @@ testAll(gridPlot, append=gridAppend, model=gridAppendModel, filestem="grid",
 
 # Test for being able to ADD to a replayed 'lattice' plot
 latticeAppend <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     downViewport("plot_01.panel.1.1.vp")
     grid.segments()
 }
 
 latticeAppendModel <- function() {
-    require(lattice, quietly=TRUE)
+    require("lattice", quietly=TRUE)
     xyplot(1 ~ 1)
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     downViewport("plot_01.panel.1.1.vp")
     grid.segments()
 }
@@ -124,12 +129,12 @@ testAll(latticePlot, append=latticeAppend, model=latticeAppendModel,
 # Test for being able to ADD to a replayed 'grid' plot,
 # but with 'grid' drawing already on device
 gridPrepend <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.segments()
 }
 
 gridPrependModel <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.segments()
     # Replay of display list will force a new page
     grid.newpage()
@@ -166,14 +171,14 @@ testAll(graphicsPlot, prepend=graphicsPrepend, append=graphicsAppend,
      
 # Test 'grid', but with 'graphics' drawing already on device
 graphicsGrid1 <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     pushViewport(viewport(width=.5, height=.5, name="vp"))
     grid.rect(name="r")
 }
 
 graphicsGridModel1 <- function() {
     plot(1, col="green")
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     # Replay of display list will force a new page
     grid.newpage()
     pushViewport(viewport(width=.5, height=.5, name="vp"))
@@ -193,14 +198,14 @@ testAll(graphicsGrid1, prepend=graphicsPrepend, append=gridAppend,
 # Test mix of 'graphics' and 'grid', with 'graphics' drawing already on device 
 graphicsGrid2 <- function() {
     plot.new()
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     pushViewport(viewport(width=.5, height=.5, name="vp"))
     grid.rect(name="r")
 }
 
 graphicsGridModel2 <- function() {
     plot(1, col="green")
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     plot.new()
     pushViewport(viewport(width=.5, height=.5, name="vp"))
     grid.rect(name="r")
@@ -223,13 +228,13 @@ testAll(graphicsGrid2, prepend=graphicsPrepend, append=gridAppend,
 # the engine DL [even though there is not];  a symptom of this
 # involvement could be the injection of an unnecessary [blank] new page!)
 gridDLgraphics <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.segments()
     plot(1, col="red")
 }
 
 gridDLgraphicsModel <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.segments()
     plot(1, col="red")
     plot(1, col="red")
@@ -242,14 +247,14 @@ testDevice(gridDLgraphics, model=gridDLgraphicsModel,
 # that is NOT visible on screen!
 # Record/replay does work though (!)
 gridDLgraphicsEdit <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.segments(name="s")
     plot(1, col="red")
     grid.edit("s", gp=gpar(col="red"))
 }
 
 gridDLgraphicsEditModel <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     grid.segments(name="s")
     plot(1, col="red")
     grid.edit("s", gp=gpar(col="red"))
@@ -274,7 +279,7 @@ testAll(recordGraphics, model=recordGraphics, filestem="record-graphics")
 # will not contain grid DL, so replay will not do ANY 'grid' setup
 # (not even start a page)
 gridNULL <- function() {
-    require(grid, quietly=TRUE)    
+    require("grid", quietly=TRUE)    
     grid.newpage()
 }
 
@@ -290,7 +295,7 @@ gridEdit <- function() {
 }
 
 gridEditModel <- function() {
-    require(grid, quietly=TRUE)
+    require("grid", quietly=TRUE)
     pushViewport(viewport(width=.5, height=.5, name="vp"))
     grid.rect(name="r")
     grid.edit("r", gp=gpar(col="red"))
@@ -303,5 +308,30 @@ gridEditModel <- function() {
 testDevice(gridPlot, prepend=gridEdit, model=gridEditModel,
            filestem="grid-edit")
 
-
-
+# Test of local 'ggplot2' mod that records library(ggplot2) via
+# recordGraphics() as part of the print.ggplot() method
+# (so 'ggplot2' is automatically loaded if a 'ggplot2' plot
+#  is on the recorded display list)
+# FIRST test for existence of local 'ggplot2'
+# (so this test just gets skipped if anyone else runs this code)
+if (file.exists("../GGPlot")) {    
+    # MAKE SURE that the local modded 'ggplot2' is installed in BOTH
+    # 'Rcmd' R version and system R version (for testVersion=TRUE) !
+    cmd <- paste0(Rcmd,
+                  " -e 'install.packages(\"../GGPlot/ggplot2\", ",
+                  "repos=NULL, ",
+                  "lib=\"", Rlib, "\")'")
+    system(cmd)
+    system(paste0("Rscript -e 'install.packages(\"../GGPlot/ggplot2\", ",
+                  "repos=NULL)'"))
+    # Do the testing
+    testAll(ggplot2Plot, model=ggplot2Plot, filestem="ggplot2-mod")
+    # Restore normal ggplot2 installation
+    cmd <- paste0(Rcmd,
+                  " -e 'install.packages(\"ggplot2\", ",
+                  "repos=\"http://cran.stat.auckland.ac.nz\", ",
+                  "lib=\"", Rlib, "\")'")
+    system(cmd)
+    system(paste0("Rscript -e 'install.packages(\"ggplot2\", ",
+                  "repos=\"http://cran.stat.auckland.ac.nz\")'"))
+}

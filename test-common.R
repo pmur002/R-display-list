@@ -1,5 +1,11 @@
 
 Rcmd <- "~/R/r-devel/BUILD/bin/Rscript"
+Rlib <- "~/R/r-devel/BUILD/library"
+    
+cat(paste0("===================================================\n",
+           "Path to Rscript executable (for testing) set to ...\n",
+           Rcmd, "\n",
+           "===================================================\n"))
 
 funText <- function(f) {
     bodyText <- deparse(body(f))
