@@ -1,8 +1,12 @@
 
+# *** README ***
+
 # Usually run this with system R - it is just directing traffic
 # (if you run with, say, r-devel, may get errors because
 #  system("Rscript") from, say r-devel, will not include
-#  the right .libPath()s)
+#  the right .libPath()s, which matters for the 'ggplot2' at the bottom)
+
+# *** README ***
 
 # Run somewhere that this will NOT do DAMAGE !!!
 # For me that is ~/Files/Research/Rstuff/DisplayList/Testing/
