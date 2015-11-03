@@ -18,6 +18,7 @@ system("rm *.rds")
 
 source("test-common.R")
 
+          
 # Basic test for recording and replaying 'graphics' plot
 # Fails in current R because save/load of recorded plot has been outlawed
 graphicsPlot <- function() {
@@ -312,7 +313,7 @@ gridEditModel <- function() {
 testDevice(gridPlot, prepend=gridEdit, model=gridEditModel,
            filestem="grid-edit")
 
-# Test of local 'ggplot2' mod that records library(ggplot2) via
+# Test of local 'ggplot2' mod that records loadNamespace(ggplot2) via
 # recordGraphics() as part of the print.ggplot() method
 # (so 'ggplot2' is automatically loaded if a 'ggplot2' plot
 #  is on the recorded display list)
@@ -339,3 +340,69 @@ if (file.exists("../GGPlot")) {
     system(paste0("Rscript -e 'install.packages(\"ggplot2\", ",
                   "repos=\"http://cran.stat.auckland.ac.nz\")'"))
 }
+
+# Test of recordPlot(attach=) and replayPlot(x, reloadPkgs=)
+# The idea is to save/redraw a plot that needs a package reloaded for the
+# redraw to work properly
+# NOTE that 'directlabels' attaches 'ggplot2' itself
+# NOTE also that what is missing (if you do not use
+# recordPlot(attach="directlabels")) is some drawing methods, BUT
+# recordPlot(load="directlabels") is not enough because 'directlabels'
+# does not EXPORT the relevant drawing methods!
+attachPlot <- function() {
+    require(directlabels, quiet=TRUE)
+    require(ggplot2, quiet=TRUE)
+    set.seed(123)
+    x <- jitter(mpg$hwy)
+    y <- jitter(mpg$cty)
+    col <- mpg$class
+    main <- "Fuel efficiency depends on car size"
+    scatter <- qplot(x, y, colour=col, main=main)
+    direct.label(scatter)
+}
+
+testReload(attachPlot, model=attachPlot,
+           attachPkgs="directlabels", reloadPkgs=TRUE,
+           filestem="attachPkgs")
+
+# Test of recordPlot(load=) and replayPlot(x, reloadPkgs=)
+# This is only a proper test with ggplot2 v1.0.1
+# (BEFORE ggplot2 added recordGraphics(requireNamespace("ggplot2")) to
+#  its print.ggplot() method)
+loadPlot <- function() {
+    require(ggplot2, quiet=TRUE)
+    set.seed(123)
+    x <- jitter(mpg$hwy)
+    y <- jitter(mpg$cty)
+    col <- mpg$class
+    main <- "Fuel efficiency depends on car size"
+    qplot(x, y, colour=col, main=main)
+}
+
+# FIRST test for existence of local 'ggplot2'
+# (so this test just gets skipped if anyone else runs this code)
+if (file.exists("../GGPlot")) {    
+    # MAKE SURE that the correct 'ggplot2' version is installed in BOTH
+    # 'Rcmd' R version and system R version (for testVersion=TRUE) !
+    cmd <- paste0(Rcmd,
+                  " -e 'install.packages(\"../GGPlot/ggplot2_1.0.1\", ",
+                  "repos=NULL, ",
+                  "lib=\"", Rlib, "\")'")
+    system(cmd)
+    system(paste0("Rscript -e 'install.packages(\"../GGPlot/ggplot2_1.0.1\", ",
+                  "repos=NULL)'"))
+    # Do the testing
+    testReload(loadPlot, model=loadPlot,
+               loadPkgs="ggplot2", reloadPkgs=TRUE,
+               filestem="loadPkgs")
+    # Restore normal ggplot2 installation
+    cmd <- paste0(Rcmd,
+                  " -e 'install.packages(\"ggplot2\", ",
+                  "repos=\"http://cran.stat.auckland.ac.nz\", ",
+                  "lib=\"", Rlib, "\")'")
+    system(cmd)
+    system(paste0("Rscript -e 'install.packages(\"ggplot2\", ",
+                  "repos=\"http://cran.stat.auckland.ac.nz\")'"))
+}
+
+

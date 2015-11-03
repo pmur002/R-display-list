@@ -126,14 +126,32 @@ testSession <- function(plot, prepend=doNothing, append=doNothing, model,
 }
 
 testReload <- function(plot, prepend=doNothing, append=doNothing, model,
-                       filestem, testVersion=FALSE, defaultPackages=NA) {
+                       filestem, testVersion=FALSE, defaultPackages=NA,
+                       loadPkgs=NULL, attachPkgs=NULL, reloadPkgs=FALSE) {
     # Record plot
     savefile <- paste0(filestem, "-reload-record.rds")
     png1 <- paste0(filestem, "-reload-record.png")
     code1 <- funText(plot)
+    # If loadPkgs != NULL or attachPkgs != NULL record packages with snapshot
+    if (is.null(loadPkgs)) {
+        pkgs <- ""
+    } else {
+        pkgs <- paste0('load="', paste(loadPkgs, collapse='", "'), '"')
+    }
+    if (is.null(attachPkgs)) {
+        pkgs <- pkgs
+    } else {
+        attach <- paste0('attach="', paste(attachPkgs, collapse='", "'), '"')
+        if (is.null(loadPkgs)) {
+            pkgs <- attach
+        } else {
+            pkgs <- paste(pkgs, attach, sep=", ")
+        }
+    }
     expr1 <- paste0('png("', png1, '"); dev.control("enable"); ',
                     code1,
-                    '; p <- recordPlot(); saveRDS(p, "', savefile, '")')
+                    '; p <- recordPlot(', pkgs, '); ',
+                    'saveRDS(p, "', savefile, '")')
     # If 'testVersion', generate the "recordedplot" using the system R
     # (which will be a different R version)
     if (testVersion) {
@@ -166,7 +184,8 @@ testReload <- function(plot, prepend=doNothing, append=doNothing, model,
                     'grDevices::dev.control("enable"); ',
                     code2a,
                     '; p <- readRDS("', savefile, '"); ',
-                    'grDevices::replayPlot(p); ',
+                    # reloadPkgs if told to
+                    'grDevices::replayPlot(p, reloadPkgs=', reloadPkgs, '); ',
                     code2b)
     cmd2 <- paste0(Rcmd,  dfltpkgs, " -e '", expr2, "'")
     result <- system(cmd2, ignore.stdout=TRUE, ignore.stderr=FALSE)
